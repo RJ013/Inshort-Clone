@@ -5,6 +5,8 @@ import FeedView from "@/components/feed-view"
 import { newsData, blogsData } from "@/lib/data"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState("news")
 
