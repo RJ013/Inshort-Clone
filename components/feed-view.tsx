@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useMemo } from "react"
+import { useRef, useEffect, useMemo, useState } from "react"
 import ContentCard from "./content-card"
 import type { NewsItem } from "@/lib/types"
 
@@ -16,6 +16,7 @@ const extractTimeValue = (time: string): number => {
 
 export default function FeedView({ items }: FeedViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   // Sort items based on time (latest first)
   const sortedItems = useMemo(
@@ -28,16 +29,15 @@ export default function FeedView({ items }: FeedViewProps) {
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    if (!container || typeof window === 'undefined') return
 
     // Intersection Observer to handle visibility
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          const index = Number(entry.target.getAttribute('data-index'))
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            entry.target.classList.add("active")
-          } else {
-            entry.target.classList.remove("active")
+            setActiveIndex(index)
           }
         })
       },
@@ -48,37 +48,36 @@ export default function FeedView({ items }: FeedViewProps) {
       }
     )
 
-    const cards = container.querySelectorAll(".content-card")
-    cards.forEach((card) => observer.observe(card))
+    // Using setTimeout to ensure the DOM is fully rendered
+    setTimeout(() => {
+      const cards = container.querySelectorAll("[data-index]")
+      cards.forEach((card) => observer.observe(card))
+    }, 0)
 
     return () => {
-      cards.forEach((card) => observer.unobserve(card))
+      observer.disconnect()
     }
   }, [sortedItems])
 
   return (
     <div
       ref={containerRef}
-      className="h-full overflow-y-scroll snap-y snap-mandatory"
+      className="h-full overflow-y-scroll snap-y snap-mandatory feed-container"
       style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
     >
-      <style jsx global>{`
+      <style jsx>{`
         .feed-container::-webkit-scrollbar {
           display: none;
         }
-        
-        .content-card {
-          opacity: 0.6;
-          transition: opacity 0.3s ease;
-        }
-        
-        .content-card.active {
-          opacity: 1;
-        }
       `}</style>
 
-      {sortedItems.map((item) => (
-        <div key={item.title} className="snap-start h-full w-full">
+      {sortedItems.map((item, index) => (
+        <div 
+          key={item.title} 
+          data-index={index}
+          className={`snap-start h-full w-full content-card ${activeIndex === index ? 'opacity-100' : 'opacity-60'}`}
+          style={{ transition: "opacity 0.3s ease" }}
+        >
           <ContentCard item={item} />
         </div>
       ))}
